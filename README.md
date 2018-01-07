@@ -1,5 +1,6 @@
 # foggycam
 
+![Foggycam logo](foggycam-logo.png)
 📹  A tool to capture Nest video streams locally, without having to pay for Nest Aware.
 
 ## How To Configure
