@@ -1,0 +1,5 @@
+tools/
+_temp/
+capture/
+
+config.json
