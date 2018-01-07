@@ -4,7 +4,7 @@
 
 (_Icon derivative from the [work of Steven Kuiper](https://www.iconfinder.com/icons/408402/camera_icon#size=256)_)
 
-📹  A tool to capture Nest video streams locally, without having to pay for Nest Aware.
+📹  A tool to capture Nest video streams locally, without having to pay for Nest Aware. The current release is tested on macOS. Windows and Linux adaptations coming soon (minor tweaks required).
 
 ## How To Configure
 
@@ -16,6 +16,10 @@ In `start.py`, additional configuration can be made to the `cam.captureImages` c
 - `clear_images` (**Boolean**) - if a video is being generated, determines whether images are being deleted after the video is generated. Default value is `False`.
 - `custom_path` (**String**) - an absolute path to a local location (folder) where captured content should be stored. If left out, the default will be the location of the script.
 - `width` (**Integer**) - the width of captured images. Default value is 1280.
+
+## How To Start
+
+Run `python start.py` after you configured the settings above. Exit by pressing <kbd>Ctrl</kbd>+<kbd>C</kbd>.
 
 ## Disclaimer
 
