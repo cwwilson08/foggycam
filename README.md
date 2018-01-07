@@ -2,6 +2,8 @@
 
 ![Foggycam logo](foggycam-logo.png)
 
+(_Icon derivative from the [work of Steven Kuiper](https://www.iconfinder.com/icons/408402/camera_icon#size=256)_)
+
 📹  A tool to capture Nest video streams locally, without having to pay for Nest Aware.
 
 ## How To Configure
