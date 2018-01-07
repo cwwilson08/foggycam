@@ -17,6 +17,8 @@ In `start.py`, additional configuration can be made to the `cam.captureImages` c
 - `custom_path` (**String**) - an absolute path to a local location (folder) where captured content should be stored. If left out, the default will be the location of the script.
 - `width` (**Integer**) - the width of captured images. Default value is 1280.
 
+In addition to the above, **if you want to capture video**, you will need to [download `ffmpeg`](https://www.ffmpeg.org/download.html) and place it in the `tools` folder, in the script root folder.
+
 ## How To Start
 
 Run `python start.py` after you configured the settings above. Exit by pressing <kbd>Ctrl</kbd>+<kbd>C</kbd>.
