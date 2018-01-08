@@ -3,3 +3,8 @@ _temp/
 capture/
 
 config.json
+\.DS_Store
+
+\.vscode/
+
+*.pyc

@@ -206,7 +206,7 @@ class FoggyCam():
                                 # then clear the image folder from images in the buffer.
                                 if clear_images:
                                     for buffer_entry in camera_buffer[camera]:
-                                        os.remove(camera_image_folder + '/' + buffer_entry + '.jpg')
+                                        os.remove(os.path.join(camera_path, buffer_entry + '.jpg'))
                             else:
                                 print 'WARNING: No ffmpeg detected. Make sure the binary is in /tools.' 
 
