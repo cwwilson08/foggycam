@@ -4,11 +4,10 @@ import json
 from string import Template
 from cookielib import CookieJar
 import os
-import time
-from datetime import date, datetime
 from collections import defaultdict
 import traceback
 from subprocess import Popen, PIPE
+import uuid
 
 class FoggyCam():
     nest_username=''
@@ -137,9 +136,7 @@ class FoggyCam():
                 os.makedirs('capture')
 
             for camera in self.nest_camera_array:
-                current_time = datetime.now()
-                timestamp = str(time.mktime(current_time.timetuple()))
-                timestamp = timestamp.replace('.','')
+                file_id = str(uuid.uuid4().hex)
 
                 camera_path = ''
                 video_path = ''
@@ -160,7 +157,7 @@ class FoggyCam():
                 if not os.path.exists(video_path):
                     os.makedirs(video_path)
 
-                image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#',str(timestamp)).replace('#WIDTH#',str(width))
+                image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#',str(file_id)).replace('#WIDTH#',str(width))
                 print 'INFO: Current image URL:'
                 print image_url
 
@@ -170,17 +167,18 @@ class FoggyCam():
                 try:
                     response = self.merlin.open(request)
 
-                    with open(camera_path + '/' + timestamp + '.jpg', 'w') as f:
+                    with open(camera_path + '/' + file_id + '.jpg', 'w') as f:
                         f.write(response.read())
                     
                     # Check if we need to compile a video
                     if produce_video:
                         camera_buffer_size = len(camera_buffer[camera])
-                        print 'INFO: Camera buffer size for camera ' + camera
+                        print 'INFO: Camera buffer size for ' + camera
                         print camera_buffer_size
 
                         if camera_buffer_size < self.nest_camera_buffer_threshold:
-                            camera_buffer[camera].append(timestamp)
+                            print 'INFO: Registering bucket in buffer: ' + file_id
+                            camera_buffer[camera].append(file_id)
                         else:
                             camera_image_folder = os.path.join(self.local_path,camera_path)
 
@@ -196,9 +194,9 @@ class FoggyCam():
                             ffmpegpath=os.path.join(self.local_path,'tools','ffmpeg')
                             if os.path.isfile(ffmpegpath):
                                 print 'INFO: Found ffmpeg. Processing video!'
-                                target_video_path = os.path.join(video_path, timestamp + '.mp4')
+                                target_video_path = os.path.join(video_path, file_id + '.mp4')
                                 process = Popen([ffmpegpath, '-r', '24', '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
-                                stdout, stderr = process.communicate()
+                                process.communicate()
                                 os.remove(concat_file_name)
                                 print 'INFO: Video processing is complete!'
 
@@ -206,7 +204,9 @@ class FoggyCam():
                                 # then clear the image folder from images in the buffer.
                                 if clear_images:
                                     for buffer_entry in camera_buffer[camera]:
-                                        os.remove(os.path.join(camera_path, buffer_entry + '.jpg'))
+                                        deletion_target = os.path.join(camera_path, buffer_entry + '.jpg')
+                                        print 'INFO: Deleting ' + deletion_target
+                                        os.remove(deletion_target)
                             else:
                                 print 'WARNING: No ffmpeg detected. Make sure the binary is in /tools.' 
 
