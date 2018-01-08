@@ -6,6 +6,8 @@
 
 📹  A tool to capture Nest video streams locally, without having to pay for Nest Aware. The current release is tested on macOS. Windows and Linux adaptations coming soon (minor tweaks required).
 
+>**NOTE:** Worth noting that we don't yet support audio recording, due to the fact that only the visual stream is captured.
+
 ## How To Configure
 
 Make sure you rename `_config.json` to `config.json` and add your Nest username and password to the file.
