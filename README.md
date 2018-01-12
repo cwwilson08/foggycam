@@ -1,4 +1,4 @@
-# foggycam
+# 📹 foggycam
 
 ![Foggycam logo](foggycam-logo.png)
 
