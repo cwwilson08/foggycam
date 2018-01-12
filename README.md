@@ -10,14 +10,17 @@
 
 ## How To Configure
 
-Make sure you rename `_config.json` to `config.json` and add your Nest username and password to the file.
+Make sure you rename `_config.json` to `config.json` and specify the following parameters:
 
-In `start.py`, additional configuration can be made to the `cam.captureImages` call. The following parameters can be specified:
-
-- `produce_video` (**Boolean**) - determines whether a video is generated from the captured images. Default value is `False`.
-- `clear_images` (**Boolean**) - if a video is being generated, determines whether images are being deleted after the video is generated. Default value is `False`.
-- `custom_path` (**String**) - an absolute path to a local location (folder) where captured content should be stored. If left out, the default will be the location of the script.
-- `width` (**Integer**) - the width of captured images. Default value is 1280.
+|Parameter|Description|
+|-----|-----|
+|`username`|Nest account username.|
+|`password`|Nest account password.|
+|`path`|Absolute path to local folder where content needs to be stored.<br/><br/>Default is the script path.|
+|`frame_rate`|Frame rate for the generated video.<br/><br/>Default is 24.|
+|`width`|Image width for the capture image.<br/><br/>Default is 1280.|
+|`clear_images`|Determines whether images are removed after video is produced.<br/><br/>Default is false.|
+|`produce_video`|Determines whether a video is generated after a threshold of captured images is hit.<br/><br/>Default is false.|
 
 In addition to the above, **if you want to capture video**, you will need to [download `ffmpeg`](https://www.ffmpeg.org/download.html) and place it in the `tools` folder, in the script root folder.
 
