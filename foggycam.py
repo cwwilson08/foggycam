@@ -21,7 +21,6 @@ class FoggyCam():
     nest_session_url='https://home.nest.com/session'
     nest_user_url='https://home.nest.com/api/0.1/user/#USERID#/app_launch'
     nest_api_login_url='https://webapi.camera.home.nest.com/api/v1/login.login_nest'
-    #nest_api_login_url='https://home.nest.com/dropcam/api/login'
     nest_image_url='https://nexusapi-us1.camera.home.nest.com/get_image?uuid=#CAMERAID#&width=#WIDTH#&cachebuster=#CBUSTER#'
 
     nest_user_request_payload='{"known_bucket_types":["buckets","delayed_topaz","demand_charge","demand_charge_event","demand_response","device","device_alert_dialog","geofence_info","link","message","message_center","metadata","occupancy","quartz","safety","rate_plan","safety_summary","schedule","shared","structure","structure_history","structure_metadata","topaz","topaz_resource","tou","track","trip","tuneups","user","user_alert_dialog","user_settings","utility","where","widget_track"],"known_bucket_versions":[]}'
@@ -162,11 +161,8 @@ class FoggyCam():
                 print image_url
 
                 request = urllib2.Request(image_url)
-                #request.add_header('Authorization','Basic %s' % self.nest_access_token)
                 request.add_header('accept','accept:image/webp,image/apng,image/*,*/*;q=0.8')
                 request.add_header('accept-encoding','gzip, deflate, br')
-                request.add_header('user-agent','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36')
-                request.add_header('authority','nexusapi-us1.camera.home.nest.com')
 
                 try:
                     response = self.merlin.open(request)
