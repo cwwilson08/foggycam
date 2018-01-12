@@ -162,7 +162,11 @@ class FoggyCam():
                 print image_url
 
                 request = urllib2.Request(image_url)
-                request.add_header('Authorization','Basic %s' % self.nest_access_token)
+                #request.add_header('Authorization','Basic %s' % self.nest_access_token)
+                request.add_header('accept','accept:image/webp,image/apng,image/*,*/*;q=0.8')
+                request.add_header('accept-encoding','gzip, deflate, br')
+                request.add_header('user-agent','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36')
+                request.add_header('authority','nexusapi-us1.camera.home.nest.com')
 
                 try:
                     response = self.merlin.open(request)
@@ -195,7 +199,7 @@ class FoggyCam():
                             if os.path.isfile(ffmpegpath):
                                 print 'INFO: Found ffmpeg. Processing video!'
                                 target_video_path = os.path.join(video_path, file_id + '.mp4')
-                                process = Popen([ffmpegpath, '-r', '24', '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
+                                process = Popen([ffmpegpath, '-r', '12', '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
                                 process.communicate()
                                 os.remove(concat_file_name)
                                 print 'INFO: Video processing is complete!'
