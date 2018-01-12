@@ -3,5 +3,7 @@
     "password":"",
     "path": "",
     "frame_rate": 12,
-    "width": 1280
+    "width": 1280,
+    "clear_images": true,
+    "produce_video": true
 }
