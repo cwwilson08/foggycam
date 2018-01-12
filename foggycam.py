@@ -8,6 +8,8 @@ from collections import defaultdict
 import traceback
 from subprocess import Popen, PIPE
 import uuid
+import threading
+import time
 
 class FoggyCam():
     nest_username=''
@@ -45,6 +47,10 @@ class FoggyCam():
         
         self.local_path=os.path.dirname(os.path.abspath(__file__))
         self.temp_dir_path = os.path.join(self.local_path, '_temp')
+
+        self.initializeSession()
+        self.login()
+        self.initializeUser()
 
     def initializeSession(self):
         print 'INFO: Initializing session...'
@@ -124,99 +130,107 @@ class FoggyCam():
                 print camera_id
                 self.nest_camera_array.append(camera_id)
 
-    def captureImages(self,width=1280,produce_video=False,custom_path='',clear_images=False):
+    def captureImages(self,width=1280,produce_video=False,custom_path='',clear_images=False,frame_rate=24):
         print 'INFO: Capturing images...'
 
         self.is_capturing = True
+
+        if not os.path.exists('capture'):
+            os.makedirs('capture')
+
+        for camera in self.nest_camera_array:
+            camera_path = ''
+            video_path = ''
+
+            # Determine whether the entries should be copied to a custom path
+            # or not.
+            if not custom_path:
+                camera_path = os.path.join(self.local_path,'capture',camera,'images')
+                video_path = os.path.join(self.local_path,'capture',camera,'video')
+            else:
+                camera_path = os.path.join(custom_path,'capture',camera,'images')
+                video_path = os.path.join(custom_path,'capture',camera,'video')
+            
+            # Provision the necessary folders for images and videos.
+            if not os.path.exists(camera_path):
+                os.makedirs(camera_path)
+
+            if not os.path.exists(video_path):
+                os.makedirs(video_path)
+
+            t = threading.Thread(target=self.performCapture,args=(width,produce_video,clear_images,frame_rate,camera,camera_path,video_path))
+            t.daemon = True
+            t.start()
+        
+        while True:
+            time.sleep(1)
+    
+    def performCapture(self,width=1280,produce_video=False,clear_images=False,frame_rate=24,camera=None,camera_path='',video_path=''):
         camera_buffer = defaultdict(list)
 
         while self.is_capturing:
-            if not os.path.exists('capture'):
-                os.makedirs('capture')
+            file_id = str(uuid.uuid4().hex)
 
-            for camera in self.nest_camera_array:
-                file_id = str(uuid.uuid4().hex)
+            image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#',str(file_id)).replace('#WIDTH#',str(width))
+            print 'INFO: Current image URL:'
+            print image_url
 
-                camera_path = ''
-                video_path = ''
+            request = urllib2.Request(image_url)
+            request.add_header('accept','accept:image/webp,image/apng,image/*,*/*;q=0.8')
+            request.add_header('accept-encoding','gzip, deflate, br')
 
-                # Determine whether the entries should be copied to a custom path
-                # or not.
-                if not custom_path:
-                    camera_path = os.path.join(self.local_path,'capture',camera,'images')
-                    video_path = os.path.join(self.local_path,'capture',camera,'video')
-                else:
-                    camera_path = os.path.join(custom_path,'capture',camera,'images')
-                    video_path = os.path.join(custom_path,'capture',camera,'video')
+            try:
+                response = self.merlin.open(request)
 
-                # Provision the necessary folders for images and videos.
-                if not os.path.exists(camera_path):
-                    os.makedirs(camera_path)
+                with open(camera_path + '/' + file_id + '.jpg', 'w') as f:
+                    f.write(response.read())
+                
+                # Check if we need to compile a video
+                if produce_video:
+                    camera_buffer_size = len(camera_buffer[camera])
+                    print '[',threading.current_thread().name,'] INFO: Camera buffer size for ', camera, ': ', camera_buffer_size
 
-                if not os.path.exists(video_path):
-                    os.makedirs(video_path)
+                    if camera_buffer_size < self.nest_camera_buffer_threshold:
+                        print 'INFO: Registering bucket in buffer: ' + file_id
+                        camera_buffer[camera].append(file_id)
+                    else:
+                        camera_image_folder = os.path.join(self.local_path,camera_path)
 
-                image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#',str(file_id)).replace('#WIDTH#',str(width))
-                print 'INFO: Current image URL:'
+                        # Build the batch of files that need to be made into a video.
+                        file_declaration = ''
+                        for buffer_entry in camera_buffer[camera]:
+                            file_declaration = file_declaration + 'file \'' + camera_image_folder + '/' + buffer_entry + '.jpg\'\n' 
+                        concat_file_name = os.path.join(self.temp_dir_path, camera + '.txt')
+                        with open(concat_file_name, 'w') as f:
+                            f.write(file_declaration)
+
+                        # Check if we have ffmpeg locally
+                        ffmpegpath=os.path.join(self.local_path,'tools','ffmpeg')
+                        if os.path.isfile(ffmpegpath):
+                            print 'INFO: Found ffmpeg. Processing video!'
+                            target_video_path = os.path.join(video_path, file_id + '.mp4')
+                            process = Popen([ffmpegpath, '-r', str(frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
+                            process.communicate()
+                            os.remove(concat_file_name)
+                            print 'INFO: Video processing is complete!'
+
+                            # If the user specified the need to remove images post-processing
+                            # then clear the image folder from images in the buffer.
+                            if clear_images:
+                                for buffer_entry in camera_buffer[camera]:
+                                    deletion_target = os.path.join(camera_path, buffer_entry + '.jpg')
+                                    print 'INFO: Deleting ' + deletion_target
+                                    os.remove(deletion_target)
+                        else:
+                            print 'WARNING: No ffmpeg detected. Make sure the binary is in /tools.' 
+
+                        # Empty buffer, since we no longer need the file records that we're planning
+                        # to compile in a video.
+                        camera_buffer[camera] = []       
+            except Exception:
+                print 'ERROR: Could not download image from URL:'
                 print image_url
 
-                request = urllib2.Request(image_url)
-                request.add_header('accept','accept:image/webp,image/apng,image/*,*/*;q=0.8')
-                request.add_header('accept-encoding','gzip, deflate, br')
+                traceback.print_exc()
 
-                try:
-                    response = self.merlin.open(request)
-
-                    with open(camera_path + '/' + file_id + '.jpg', 'w') as f:
-                        f.write(response.read())
-                    
-                    # Check if we need to compile a video
-                    if produce_video:
-                        camera_buffer_size = len(camera_buffer[camera])
-                        print 'INFO: Camera buffer size for ' + camera
-                        print camera_buffer_size
-
-                        if camera_buffer_size < self.nest_camera_buffer_threshold:
-                            print 'INFO: Registering bucket in buffer: ' + file_id
-                            camera_buffer[camera].append(file_id)
-                        else:
-                            camera_image_folder = os.path.join(self.local_path,camera_path)
-
-                            # Build the batch of files that need to be made into a video.
-                            file_declaration = ''
-                            for buffer_entry in camera_buffer[camera]:
-                                file_declaration = file_declaration + 'file \'' + camera_image_folder + '/' + buffer_entry + '.jpg\'\n' 
-                            concat_file_name = os.path.join(self.temp_dir_path, camera + '.txt')
-                            with open(concat_file_name, 'w') as f:
-                                f.write(file_declaration)
-
-                            # Check if we have ffmpeg locally
-                            ffmpegpath=os.path.join(self.local_path,'tools','ffmpeg')
-                            if os.path.isfile(ffmpegpath):
-                                print 'INFO: Found ffmpeg. Processing video!'
-                                target_video_path = os.path.join(video_path, file_id + '.mp4')
-                                process = Popen([ffmpegpath, '-r', '12', '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
-                                process.communicate()
-                                os.remove(concat_file_name)
-                                print 'INFO: Video processing is complete!'
-
-                                # If the user specified the need to remove images post-processing
-                                # then clear the image folder from images in the buffer.
-                                if clear_images:
-                                    for buffer_entry in camera_buffer[camera]:
-                                        deletion_target = os.path.join(camera_path, buffer_entry + '.jpg')
-                                        print 'INFO: Deleting ' + deletion_target
-                                        os.remove(deletion_target)
-                            else:
-                                print 'WARNING: No ffmpeg detected. Make sure the binary is in /tools.' 
-
-                            # Empty buffer, since we no longer need the file records that we're planning
-                            # to compile in a video.
-                            camera_buffer[camera] = []       
-                except Exception:
-                    print 'ERROR: Could not download image from URL:'
-                    print image_url
-
-                    traceback.print_exc()
-
-                    pass
+                pass

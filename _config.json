@@ -1,5 +1,6 @@
 {
     "username":"",
     "password":"",
-    "path": ""
+    "path": "",
+    "frame_rate": 12
 }
