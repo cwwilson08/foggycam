@@ -2,5 +2,6 @@
     "username":"",
     "password":"",
     "path": "",
-    "frame_rate": 12
+    "frame_rate": 12,
+    "width": 1280
 }
