@@ -2,10 +2,11 @@
 
 import json
 from foggycam import FoggyCam
+from collections import namedtuple
 
 print 'Welcome to FoggyCam 1.0 - Nest video/image capture tool'
 
-CONFIG = json.load(open('config.json'))
+CONFIG = json.load(open('config.json'), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
 
-CAM = FoggyCam(username=CONFIG['username'], password=CONFIG['password'])
-CAM.capture_images(clear_images=bool(CONFIG['clear_images']), produce_video=bool(CONFIG['produce_video']), custom_path=CONFIG['path'], frame_rate=CONFIG['frame_rate'], width=CONFIG['width'])
+CAM = FoggyCam(username=CONFIG.username, password=CONFIG.password)
+CAM.capture_images(CONFIG)

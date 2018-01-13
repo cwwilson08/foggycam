@@ -5,5 +5,8 @@
     "frame_rate": 12,
     "width": 1280,
     "clear_images": true,
-    "produce_video": true
+    "produce_video": true,
+    "upload_to_azure": true,
+    "az_account_name":"",
+    "az_account_key":""
 }

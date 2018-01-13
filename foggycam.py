@@ -11,6 +11,7 @@ from subprocess import Popen, PIPE
 import uuid
 import threading
 import time
+from azurestorageprovider import AzureStorageProvider
 
 
 class FoggyCam(object):
@@ -35,7 +36,7 @@ class FoggyCam(object):
     }
 
     nest_camera_array = []
-    nest_camera_buffer_threshold = 300
+    nest_camera_buffer_threshold = 50
 
     is_capturing = False
     cookie_jar = None
@@ -143,7 +144,7 @@ class FoggyCam(object):
                 print camera_id
                 self.nest_camera_array.append(camera_id)
 
-    def capture_images(self, width=1280, produce_video=False, custom_path='', clear_images=False, frame_rate=24):
+    def capture_images(self, config=None):
         """Starts the multi-threaded image capture process."""
 
         print 'INFO: Capturing images...'
@@ -159,12 +160,12 @@ class FoggyCam(object):
 
             # Determine whether the entries should be copied to a custom path
             # or not.
-            if not custom_path:
+            if not config.path:
                 camera_path = os.path.join(self.local_path, 'capture', camera, 'images')
                 video_path = os.path.join(self.local_path, 'capture', camera, 'video')
             else:
-                camera_path = os.path.join(custom_path, 'capture', camera, 'images')
-                video_path = os.path.join(custom_path, 'capture', camera, 'video')
+                camera_path = os.path.join(config.path, 'capture', camera, 'images')
+                video_path = os.path.join(config.path, 'capture', camera, 'video')
 
             # Provision the necessary folders for images and videos.
             if not os.path.exists(camera_path):
@@ -173,14 +174,14 @@ class FoggyCam(object):
             if not os.path.exists(video_path):
                 os.makedirs(video_path)
 
-            image_thread = threading.Thread(target=self.perform_capture, args=(width, produce_video, clear_images, frame_rate, camera, camera_path, video_path))
+            image_thread = threading.Thread(target=self.perform_capture, args=(config, camera, camera_path, video_path))
             image_thread.daemon = True
             image_thread.start()
 
         while True:
             time.sleep(1)
 
-    def perform_capture(self, width=1280, produce_video=False, clear_images=False, frame_rate=24, camera=None, camera_path='', video_path=''):
+    def perform_capture(self, config=None, camera=None, camera_path='', video_path=''):
         """Captures images and generates the video from them."""
 
         camera_buffer = defaultdict(list)
@@ -188,7 +189,7 @@ class FoggyCam(object):
         while self.is_capturing:
             file_id = str(uuid.uuid4().hex)
 
-            image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(width))
+            image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config.width))
             print 'INFO: Current image URL:'
             print image_url
 
@@ -203,7 +204,7 @@ class FoggyCam(object):
                     image_file.write(response.read())
 
                 # Check if we need to compile a video
-                if produce_video:
+                if config.produce_video:
                     camera_buffer_size = len(camera_buffer[camera])
                     print '[', threading.current_thread().name, '] INFO: Camera buffer size for ', camera, ': ', camera_buffer_size
 
@@ -226,14 +227,23 @@ class FoggyCam(object):
                         if os.path.isfile(ffmpegpath):
                             print 'INFO: Found ffmpeg. Processing video!'
                             target_video_path = os.path.join(video_path, file_id + '.mp4')
-                            process = Popen([ffmpegpath, '-r', str(frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
+                            process = Popen([ffmpegpath, '-r', str(config.frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
                             process.communicate()
                             os.remove(concat_file_name)
                             print 'INFO: Video processing is complete!'
 
+                            # Upload the video
+                            storage_provider = AzureStorageProvider()
+
+                            if bool(config.upload_to_azure):
+                                print 'INFO: Uploading to Azure Storage...'
+                                target_blob = 'foggycam/' + camera + '/' + file_id + '.mp4'
+                                storage_provider.upload_video(account_name=config.az_account_name, account_key=config.az_account_key, container='foggycam', blob=target_blob, path=target_video_path)
+                                print 'INFO: Upload complete.'
+
                             # If the user specified the need to remove images post-processing
                             # then clear the image folder from images in the buffer.
-                            if clear_images:
+                            if config.clear_images:
                                 for buffer_entry in camera_buffer[camera]:
                                     deletion_target = os.path.join(camera_path, buffer_entry + '.jpg')
                                     print 'INFO: Deleting ' + deletion_target
