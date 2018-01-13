@@ -11,6 +11,7 @@ from subprocess import Popen, PIPE
 import uuid
 import threading
 import time
+import subprocess
 from azurestorageprovider import AzureStorageProvider
 
 
@@ -223,11 +224,20 @@ class FoggyCam(object):
                             declaration_file.write(file_declaration)
 
                         # Check if we have ffmpeg locally
-                        ffmpegpath = os.path.join(self.local_path, 'tools', 'ffmpeg')
-                        if os.path.isfile(ffmpegpath):
+                        use_terminal = False
+                        ffmpeg_path = ''
+
+                        exist = subprocess.call('command -v ffmpeg >> /dev/null', shell=True)
+                        if exist == 0:
+                            ffmpeg_path = 'ffmpeg'
+                            use_terminal = True
+                        else:
+                            ffmpeg_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'tools', 'ffmpeg'))
+                        
+                        if use_terminal or (os.path.isfile(ffmpeg_path) and use_terminal == False):
                             print 'INFO: Found ffmpeg. Processing video!'
                             target_video_path = os.path.join(video_path, file_id + '.mp4')
-                            process = Popen([ffmpegpath, '-r', str(config.frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
+                            process = Popen([ffmpeg_path, '-r', str(config.frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
                             process.communicate()
                             os.remove(concat_file_name)
                             print 'INFO: Video processing is complete!'
