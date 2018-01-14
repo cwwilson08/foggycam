@@ -18,11 +18,27 @@ Make sure you rename `_config.json` to `config.json` and specify the following p
 |`password`|Nest account password.|
 |`path`|Absolute path to local folder where content needs to be stored.<br/><br/>Default is the script path.|
 |`frame_rate`|Frame rate for the generated video.<br/><br/>Default is 24.|
+|`threshold`|Number of images that need to be combined in a video in a single buffer.<br/><br/>Default is 200.|
 |`width`|Image width for the capture image.<br/><br/>Default is 1280.|
 |`clear_images`|Determines whether images are removed after video is produced.<br/><br/>Default is false.|
 |`produce_video`|Determines whether a video is generated after a threshold of captured images is hit.<br/><br/>Default is false.|
+|`upload_to_azure`|Determines whether the final video will be uploaded to Azure Storage.<br/><br/>Default is false.|
+|`az_account_name`|Name of the Azure Storage account.|
+|`az_sas_token`|SAS token for the Azure Storage account. Should have `write`, `list` and `read` permissions.|
 
 **If you want to capture video**, you will need to [download `ffmpeg`](https://www.ffmpeg.org/download.html) and place it in the `tools` folder, in the script root directory.
+
+Alternatively, if you are on Linux, install `ffmpeg`:
+
+```
+sudo apt-get install ffmpeg
+```
+
+On a Mac, run:
+
+```
+brew install ffmpeg
+```
 
 ## How To Start
 
