@@ -28,6 +28,18 @@ Make sure you rename `_config.json` to `config.json` and specify the following p
 
 **If you want to capture video**, you will need to [download `ffmpeg`](https://www.ffmpeg.org/download.html) and place it in the `tools` folder, in the script root directory.
 
+Alternatively, if you are on Linux, install `ffmpeg`:
+
+```
+sudo apt-get install ffmpeg
+```
+
+On a Mac, run:
+
+```
+brew install ffmpeg
+```
+
 ## How To Start
 
 Run `python start.py` after you configured the settings above. Exit by pressing <kbd>Ctrl</kbd>+<kbd>C</kbd>.
