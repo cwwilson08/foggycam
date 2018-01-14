@@ -155,6 +155,8 @@ class FoggyCam(object):
         if not os.path.exists('capture'):
             os.makedirs('capture')
 
+        self.nest_camera_buffer_threshold = config.threshold
+
         for camera in self.nest_camera_array:
             camera_path = ''
             video_path = ''
@@ -191,8 +193,6 @@ class FoggyCam(object):
             file_id = str(uuid.uuid4().hex)
 
             image_url = self.nest_image_url.replace('#CAMERAID#', camera).replace('#CBUSTER#', str(file_id)).replace('#WIDTH#', str(config.width))
-            print 'INFO: Current image URL:'
-            print image_url
 
             request = urllib2.Request(image_url)
             request.add_header('accept', 'accept:image/webp,image/apng,image/*,*/*;q=0.8')
@@ -210,7 +210,6 @@ class FoggyCam(object):
                     print '[', threading.current_thread().name, '] INFO: Camera buffer size for ', camera, ': ', camera_buffer_size
 
                     if camera_buffer_size < self.nest_camera_buffer_threshold:
-                        print 'INFO: Registering bucket in buffer: ' + file_id
                         camera_buffer[camera].append(file_id)
                     else:
                         camera_image_folder = os.path.join(self.local_path, camera_path)
@@ -234,7 +233,7 @@ class FoggyCam(object):
                         else:
                             ffmpeg_path = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..', 'tools', 'ffmpeg'))
                         
-                        if use_terminal or (os.path.isfile(ffmpeg_path) and use_terminal == False):
+                        if use_terminal or (os.path.isfile(ffmpeg_path) and use_terminal is False):
                             print 'INFO: Found ffmpeg. Processing video!'
                             target_video_path = os.path.join(video_path, file_id + '.mp4')
                             process = Popen([ffmpeg_path, '-r', str(config.frame_rate), '-f', 'concat', '-safe', '0', '-i', concat_file_name, '-vcodec', 'libx264', '-crf', '25', '-pix_fmt', 'yuv420p', target_video_path], stdout=PIPE, stderr=PIPE)
@@ -248,7 +247,7 @@ class FoggyCam(object):
                             if bool(config.upload_to_azure):
                                 print 'INFO: Uploading to Azure Storage...'
                                 target_blob = 'foggycam/' + camera + '/' + file_id + '.mp4'
-                                storage_provider.upload_video(account_name=config.az_account_name, account_key=config.az_account_key, container='foggycam', blob=target_blob, path=target_video_path)
+                                storage_provider.upload_video(account_name=config.az_account_name, sas_token=config.az_sas_token, container='foggycam', blob=target_blob, path=target_video_path)
                                 print 'INFO: Upload complete.'
 
                             # If the user specified the need to remove images post-processing
