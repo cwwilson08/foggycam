@@ -197,6 +197,8 @@ class FoggyCam(object):
             request = urllib2.Request(image_url)
             request.add_header('accept', 'accept:image/webp,image/apng,image/*,*/*;q=0.8')
             request.add_header('accept-encoding', 'gzip, deflate, br')
+            request.add_header('user-agent', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Mobile Safari/537.36')
+            request.add_header('referer','https://home.nest.com/')
 
             try:
                 response = self.merlin.open(request)
