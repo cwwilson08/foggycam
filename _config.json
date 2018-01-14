@@ -7,7 +7,7 @@
     "threshold": 200,
     "clear_images": true,
     "produce_video": true,
-    "upload_to_azure": true,
+    "upload_to_azure": false,
     "az_account_name":"",
     "az_sas_token":""
 }
