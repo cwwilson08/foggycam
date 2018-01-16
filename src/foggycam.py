@@ -265,6 +265,11 @@ class FoggyCam(object):
                         # Empty buffer, since we no longer need the file records that we're planning
                         # to compile in a video.
                         camera_buffer[camera] = []
+            except urllib2.HTTPError as err:
+                if err.code == 403:
+                    self.initialize_session()
+                    self.login()
+                    self.initialize_user()
             except Exception:
                 print 'ERROR: Could not download image from URL:'
                 print image_url
